@@ -1,0 +1,6 @@
+# Path configurations for the data and trajectory directories
+# All items for path configurations need to be absolute paths
+data_root_dir: /home/username/data
+trajectory_child_dirs:
+  - trajectory_1
+  - trajectory_2
