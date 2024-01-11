@@ -1,3 +1,10 @@
+'''
+File Created:  2024-Jan-11th Thu 11:35
+Author:        Kaiyuan Wang (k5wang@ucsd.edu)
+Affiliation:   ARCLab @ UCSD
+Description:   Utility functions for open3d, yaml, file handling, etc.
+'''
+
 import yaml, numpy as np, open3d as o3d
 import open3d.cpu.pybind.geometry as o3d_geo
 from types import SimpleNamespace

@@ -1,6 +1,6 @@
 # Path configurations for the data and trajectory directories
-# All items for path configurations need to be absolute paths
-data_root_dir: /home/username/data
-trajectory_child_dirs:
-  - trajectory_1
-  - trajectory_2
+data_root_dir: /home/username/data  # Has to be an absolute path
+trajectory_child_dirs:              # Relative to `data_root_dir`
+  [Fri_Apr_21_10_42_22_2023, Fri_Apr_21_10_43_23_2023, Fri_Apr_21_11_26_18_2023
+  Mon_Apr_17_15_39_00_2023, Mon_May__1_14_31_48_2023, Thu_Apr_13_15_10_13_2023,
+  Thu_Apr_27_13_18_00_2023, Thu_May_11_13_33_20_2023]
