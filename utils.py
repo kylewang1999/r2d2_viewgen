@@ -23,7 +23,14 @@ def parse_yaml_to_namespace(yaml_file:str):
 def parse_extrinsics_json(json_file:str):
     with open(json_file, 'r') as file:
         data = json.load(file)
-    return data
+
+    all_extrinsics = []
+    
+    for _, metadata_single_trajectory in data.items():
+        for k, v in metadata_single_trajectory.items():
+            if 'extrinsic' in k and isinstance(v, list):
+                all_extrinsics.append(np.array(v))
+    return np.stack(all_extrinsics, axis=0)
 
 def sample_points_from_sphere(radius:float=5., num_samples:int=10) -> o3d_geo.PointCloud:
 
@@ -85,3 +92,8 @@ def look_at(camera_xyz:np.array, target_xyz:np.array, up:np.array=np.array([0,0,
 if __name__ == '__main__':
     
     json_file = 'assets/r2d2_metadata.json'
+    extrinsics = parse_extrinsics_json(json_file)
+
+    output_file = 'assets/r2d2_extrinsics.npy'
+    np.save(output_file, extrinsics)
+    print(f'extrinsics array of shape {extrinsics.shape} is saved to {output_file}')
