@@ -5,7 +5,7 @@ Affiliation:   ARCLab @ UCSD
 Description:   Utility functions for open3d, yaml, file handling, etc.
 '''
 
-import yaml, numpy as np, open3d as o3d
+import yaml, json, numpy as np, open3d as o3d
 import open3d.cpu.pybind.geometry as o3d_geo
 from types import SimpleNamespace
 
@@ -15,10 +15,15 @@ def dict_to_namespace(dict_obj):
             dict_obj[key] = dict_to_namespace(value)
     return SimpleNamespace(**dict_obj)
 
-def parse_yaml_to_namespace(yaml_file):
+def parse_yaml_to_namespace(yaml_file:str):
     with open(yaml_file, 'r') as file:
         data = yaml.safe_load(file)
     return dict_to_namespace(data)
+
+def parse_extrinsics_json(json_file:str):
+    with open(json_file, 'r') as file:
+        data = json.load(file)
+    return data
 
 def sample_points_from_sphere(radius:float=5., num_samples:int=10) -> o3d_geo.PointCloud:
 
@@ -78,5 +83,5 @@ def look_at(camera_xyz:np.array, target_xyz:np.array, up:np.array=np.array([0,0,
 
 
 if __name__ == '__main__':
-    namespace_obj = parse_yaml_to_namespace('config.yaml')
-    print(namespace_obj)
+    
+    json_file = 'assets/r2d2_metadata.json'
