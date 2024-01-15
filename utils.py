@@ -30,7 +30,7 @@ def parse_extrinsics_json(json_file:str):
     
     for _, metadata_single_trajectory in data.items():
         for k, v in metadata_single_trajectory.items():
-            if 'extrinsic' in k and isinstance(v, list):
+            if 'extrinsic' in k and 'wrist' not in k and isinstance(v, list):
                 all_extrinsics.append(np.array(v))
     return np.stack(all_extrinsics, axis=0)
 

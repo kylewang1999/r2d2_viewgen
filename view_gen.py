@@ -54,13 +54,13 @@ def rotate_view(vis:o3d.visualization.Visualizer):
     return False
 
 
-def visualize_pose_stats(subsample_criteria:str='random', orientation:str='look_at',num_samples:int=100):
+def visualize_pose_stats(subsample_criteria:str='furthest', orientation:str='look_at',num_samples:int=100):
     """Visualize the pose statistics of R2D2 dataset
     Args:
     - subsample_criteria: str, 'random' or 'kmeans'
     - orientation: str, 'look_at' or 'recorded'
     """
-    assert subsample_criteria in ['random', 'kmeans']
+    assert subsample_criteria in ['furthest', 'random', 'kmeans']
     assert orientation in ['look_at', 'recorded']
 
     # NOTE: R2D2 Pose convention is [t_vec, r_vec]
@@ -82,6 +82,10 @@ def visualize_pose_stats(subsample_criteria:str='random', orientation:str='look_
         selected_ids, _ = pairwise_distances_argmin_min(centroids, xyzs)
     elif subsample_criteria == 'random':
         selected_ids = np.random.choice(len(xyzs), num_samples, replace=False)
+    elif subsample_criteria == 'furthest':
+        pcd_down = o3d_pcd_from_numpy(xyzs).farthest_point_down_sample(num_samples)
+        pcd_down_np = np.asarray(pcd_down.points)
+        selected_ids, _ = pairwise_distances_argmin_min(pcd_down_np, xyzs)
     else:
         raise NotImplementedError
 
@@ -100,8 +104,9 @@ def visualize_pose_stats(subsample_criteria:str='random', orientation:str='look_
     all_geometries =  [
         load_panda_mesh(), 
         o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.2, origin=[0, 0, 0]),
-        o3d_pcd_from_numpy(xyzs),
-        *camlines
+        # o3d_pcd_from_numpy(xyzs),
+        # o3d_pcd_from_numpy(extrinsics[:,:3]),
+        *camlines,
     ]
     
     vis = o3d.visualization.Visualizer()
@@ -123,5 +128,5 @@ def visualize_pose_stats(subsample_criteria:str='random', orientation:str='look_
 if __name__ == '__main__':
 
     # run_toy_example()
-    visualize_pose_stats(subsample_criteria='random', orientation='look_at', num_samples=50)
+    visualize_pose_stats(subsample_criteria='furthest', orientation='look_at', num_samples=100)
     

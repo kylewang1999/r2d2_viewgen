@@ -6,3 +6,7 @@ __pycache__/
 
 # VSCode
 .vscode/
+
+# Open3D Camera
+DepthCamera*
+DepthCapture*
