@@ -54,12 +54,14 @@ def rotate_view(vis:o3d.visualization.Visualizer):
     return False
 
 
-def visualize_pose_stats(subsample_criteria: str='random', num_samples: int=100):
+def visualize_pose_stats(subsample_criteria:str='random', orientation:str='look_at',num_samples:int=100):
     """Visualize the pose statistics of R2D2 dataset
     Args:
     - subsample_criteria: str, 'random' or 'kmeans'
+    - orientation: str, 'look_at' or 'recorded'
     """
     assert subsample_criteria in ['random', 'kmeans']
+    assert orientation in ['look_at', 'recorded']
 
     # NOTE: R2D2 Pose convention is [t_vec, r_vec]
     extrinsics = np.load('assets/r2d2_extrinsics.npy')  # (133836, 6)
@@ -91,7 +93,9 @@ def visualize_pose_stats(subsample_criteria: str='random', num_samples: int=100)
         ext1 = look_at(xyz, np.array([0,0,0]), np.array([0,0,1]))
         ext2 = ext_mat
         opacity = 1 - (np.linalg.norm(xyz) / max_dist)
-        camlines.append(make_frustum(size=0.05, extrinsic=ext1, opacity=opacity))
+        camlines.append(make_frustum(size=0.05, 
+                                     opacity=opacity,
+                                     extrinsic=ext1 if orientation=='look_at' else ext2))
         
     all_geometries =  [
         load_panda_mesh(), 
@@ -101,8 +105,7 @@ def visualize_pose_stats(subsample_criteria: str='random', num_samples: int=100)
     ]
     
     vis = o3d.visualization.Visualizer()
-    # vis.create_window(window_name="Using Recorded Orientation")
-    vis.create_window(window_name="Enforcing Look-at Orientation")
+    vis.create_window(window_name="Using Recorded Orientation" if orientation == 'recorded' else "Enforcing Look-at Orientation")
     vis.get_render_option().line_width = 10.0
     for geo in all_geometries: vis.add_geometry(geo)
 
@@ -120,5 +123,5 @@ def visualize_pose_stats(subsample_criteria: str='random', num_samples: int=100)
 if __name__ == '__main__':
 
     # run_toy_example()
-    visualize_pose_stats(subsample_criteria='random', num_samples=50)
+    visualize_pose_stats(subsample_criteria='random', orientation='look_at', num_samples=50)
     
