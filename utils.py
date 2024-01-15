@@ -5,9 +5,12 @@ Affiliation:   ARCLab @ UCSD
 Description:   Utility functions for open3d, yaml, file handling, etc.
 '''
 
-import yaml, json, numpy as np, open3d as o3d
+import yaml, json
+import numpy as np, open3d as o3d
 import open3d.cpu.pybind.geometry as o3d_geo
+
 from types import SimpleNamespace
+# from kornia.geometry.conversions import convert_angles_to_rotation_matrix
 
 def dict_to_namespace(dict_obj):
     for key, value in dict_obj.items():
@@ -32,6 +35,14 @@ def parse_extrinsics_json(json_file:str):
                 all_extrinsics.append(np.array(v))
     return np.stack(all_extrinsics, axis=0)
 
+def make_extrinsic_matrix(t_vec:np.array, r_vec:np.array) -> np.array:
+    assert t_vec.shape == (3,) == r_vec.shape
+
+    extrinsic = np.eye(4)
+    extrinsic[:3, :3] = o3d.geometry.Geometry3D.get_rotation_matrix_from_xyz(r_vec)
+    extrinsic[:3, 3] = t_vec
+    return extrinsic
+
 def sample_points_from_sphere(radius:float=5., num_samples:int=10) -> o3d_geo.PointCloud:
 
     phi = np.random.uniform(0, 2*np.pi, num_samples*5)
@@ -48,21 +59,30 @@ def sample_points_from_sphere(radius:float=5., num_samples:int=10) -> o3d_geo.Po
 
     return o3d_pcd
 
-def make_frustum(size:float=1.0, extrinsic:np.array=np.eye(4)) -> o3d_geo.LineSet:
+def o3d_pcd_from_numpy(points:np.array):
+    assert points.shape[1] == 3
+    assert points.ndim == 2
+
+    o3d_pcd = o3d.geometry.PointCloud()
+    o3d_pcd.points = o3d.utility.Vector3dVector(points)
+    return o3d_pcd
+
+def make_frustum(size:float=1.0, extrinsic:np.array=np.eye(4), opacity:float=0.5) -> o3d_geo.LineSet:
     """ Make a oriented frustum with the given size and extrinsic matrix """
 
     points = size * np.array([[0,0,0], [1,1,1], [1,-1,1], [-1,-1,1], [-1,1,1], [0,1.5,1]])
     lines = np.array([[0,1], [0,2], [0,3], [0,4], [1,2], [2,3], [3,4], [4,1], [5,4], [5,1]])
 
     # transform the points
-    points = np.hstack([points, np.ones((points.shape[0], 1))])
-    points = extrinsic @ points.T
-    points = points.T[:, :3]
+    points = np.hstack([points, np.ones((points.shape[0], 1))]) # (N,3) -> (N,4)
+    points = extrinsic @ points.T   # (4,4) @ (4,N) -> (4,N)
+    points = points.T[:, :3]        # (N,4) -> (N,3)
 
     lines = o3d_geo.LineSet(
         points = o3d.utility.Vector3dVector(points),
         lines = o3d.utility.Vector2iVector(lines)
     )
+    lines.paint_uniform_color(np.array([1,1,1]) * (1-opacity))
     return lines
 
 def look_at(camera_xyz:np.array, target_xyz:np.array, up:np.array=np.array([0,0,1])) -> np.array:
@@ -72,9 +92,8 @@ def look_at(camera_xyz:np.array, target_xyz:np.array, up:np.array=np.array([0,0,
     assert target_xyz.shape == (3,)
     assert up.shape == (3,)
 
-    z = camera_xyz - target_xyz
+    z = target_xyz - camera_xyz
     z /= np.linalg.norm(z)
-    z = -z
     x = np.cross(up, z)
     x /= np.linalg.norm(x)
     y = np.cross(z, x)
