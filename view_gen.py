@@ -12,7 +12,6 @@ from mpl_toolkits.mplot3d import Axes3D
 import open3d.cpu.pybind.geometry as o3d_geo
 
 from utils import make_frustum, look_at, make_extrinsic_matrix, sample_points_from_sphere, o3d_pcd_from_numpy
-from kornia.geometry.conversions import quaternion_from_euler
 from sklearn.manifold import TSNE
 from sklearn.cluster import KMeans, DBSCAN
 from sklearn.metrics import pairwise_distances_argmin_min

@@ -10,7 +10,6 @@ import numpy as np, open3d as o3d
 import open3d.cpu.pybind.geometry as o3d_geo
 
 from types import SimpleNamespace
-# from kornia.geometry.conversions import convert_angles_to_rotation_matrix
 
 def dict_to_namespace(dict_obj):
     for key, value in dict_obj.items():
