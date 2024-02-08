@@ -4,11 +4,9 @@ Author:        Kaiyuan Wang (k5wang@ucsd.edu)
 Affiliation:   ARCLab @ UCSD
 Description:   Utility functions for open3d, yaml, file handling, etc.
 '''
-
 import yaml, json
 import numpy as np, open3d as o3d
 import open3d.cpu.pybind.geometry as o3d_geo
-
 from types import SimpleNamespace
 
 def dict_to_namespace(dict_obj):
@@ -66,23 +64,82 @@ def o3d_pcd_from_numpy(points:np.array):
     o3d_pcd.points = o3d.utility.Vector3dVector(points)
     return o3d_pcd
 
-def make_frustum(size:float=1.0, extrinsic:np.array=np.eye(4), opacity:float=0.5) -> o3d_geo.LineSet:
+def make_frustum(size:float=1.0, 
+                 extrinsic:np.array=np.eye(4), 
+                 opacity:float=0.5, 
+                 color=None,
+                 geometry_type:str='lineset'):
     """ Make a oriented frustum with the given size and extrinsic matrix """
-
-    points = size * np.array([[0,0,0], [1,1,1], [1,-1,1], [-1,-1,1], [-1,1,1], [0,1.5,1]])
-    lines = np.array([[0,1], [0,2], [0,3], [0,4], [1,2], [2,3], [3,4], [4,1], [5,4], [5,1]])
+    assert geometry_type in ['lineset', 'mesh']
 
     # transform the points
+    points = size * np.array([[0,0,0], [1,1,1], [1,-1,1], [-1,-1,1], [-1,1,1], [0,1.5,1]])
     points = np.hstack([points, np.ones((points.shape[0], 1))]) # (N,3) -> (N,4)
-    points = extrinsic @ points.T   # (4,4) @ (4,N) -> (4,N)
+    points = extrinsic @ points.T   # (4,4) @ (4,N) -> (4,N) 
     points = points.T[:, :3]        # (N,4) -> (N,3)
 
-    lines = o3d_geo.LineSet(
-        points = o3d.utility.Vector3dVector(points),
-        lines = o3d.utility.Vector2iVector(lines)
+    if geometry_type == 'lineset':
+        lines = np.array([[0,1], [0,2], [0,3], [0,4], [1,2], [2,3], [3,4], [4,1], [5,4], [5,1]])
+        lines = o3d_geo.LineSet(
+            points = o3d.utility.Vector3dVector(points),
+            lines = o3d.utility.Vector2iVector(lines)
+        )
+        if color is not None:
+            lines.colors = o3d.utility.Vector3dVector([color] * len(lines.lines))
+        else:
+            lines.paint_uniform_color(np.array([1,1,1]) * (1-opacity))
+        return lines
+    
+    elif geometry_type == 'mesh':
+        faces = np.array([[0,1,2], [0,2,3], [0,3,4], [0,4,1], [4,1,5]])
+        mesh = o3d.geometry.TriangleMesh()
+        mesh.vertices = o3d.utility.Vector3dVector(points)
+        mesh.triangles = o3d.utility.Vector3iVector(faces)
+        mesh.compute_vertex_normals()
+
+        if color is not None:
+            mesh.vertex_colors = o3d.utility.Vector3dVector([color * (1-opacity)] * len(mesh.vertices))
+        
+        return mesh
+
+    else: raise NotImplementedError
+
+
+def merge_linesets(linesets:list) -> o3d_geo.LineSet:
+    ''' Merge a list of linesets into a single lineset '''
+    assert len(linesets) > 0
+    assert all([isinstance(lineset, o3d_geo.LineSet) for lineset in linesets])
+    
+    all_points, all_lines, all_colors = [], [], []
+    for i, lineset in enumerate(linesets):
+        
+        all_points.append(np.asarray(lineset.points))
+        all_colors.append(np.asarray(lineset.colors))
+
+        if i == 0:
+            all_lines.append(np.asarray(lineset.lines))
+        else:
+            all_lines.append(np.asarray(lineset.lines) + len(np.concatenate(all_points, axis=0)))
+
+    all_points = np.concatenate(all_points, axis=0)
+    all_lines = np.concatenate(all_lines, axis=0)
+    all_colors = np.concatenate(all_colors, axis=0)
+
+    merged_lineset = o3d_geo.LineSet(
+        points = o3d.utility.Vector3dVector(all_points),
+        lines = o3d.utility.Vector2iVector(all_lines),
     )
-    lines.paint_uniform_color(np.array([1,1,1]) * (1-opacity))
-    return lines
+    merged_lineset.colors = o3d.utility.Vector3dVector(all_colors)
+    return merged_lineset
+
+def merge_meshes(meshes:list) -> o3d_geo.TriangleMesh:
+
+    assert len(meshes) > 0
+    assert all([isinstance(mesh, o3d_geo.TriangleMesh) for mesh in meshes])
+
+    merged_mesh = o3d_geo.TriangleMesh()
+    for mesh in meshes: merged_mesh += mesh
+    return merged_mesh
 
 def look_at(camera_xyz:np.array, target_xyz:np.array, up:np.array=np.array([0,0,1])) -> np.array:
     ''' Generate SE(3) transformation matrix from camera position and target position '''
